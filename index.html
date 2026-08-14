@@ -11,8 +11,7 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         :root {
@@ -444,7 +443,6 @@
             color: var(--accent-gold);
         }
 
-        /* Cambio a Dancing Script para el snippet de la carta */
         .preview-text-snippet {
             font-family: 'Dancing Script', cursive;
             font-size: 18px;
@@ -505,7 +503,6 @@
             cursor: pointer;
         }
 
-        /* Área de texto con Dancing Script (más cursiva y elegante) */
         .enlarged-textarea {
             width: 100%;
             height: 100%;
@@ -629,6 +626,7 @@
                 max-width: 360px;
                 height: 580px;
                 margin: 0 auto;
+                overflow: hidden; /* Recorta los paneles que quedan fuera en móvil */
             }
 
             .trifold-card {
@@ -636,7 +634,7 @@
                 left: 0;
                 height: 100%;
                 display: flex;
-                overflow: hidden;
+                overflow: visible !important; /* Permite desplazar las páginas 2, 3 y 4 */
                 transition: transform 0.4s ease;
                 transform: translateX(0%);
                 border-radius: 12px;
@@ -650,6 +648,8 @@
                 border-right: none !important;
                 padding: 15px 12px;
                 flex-shrink: 0;
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
             }
 
             .panel-1 {
@@ -735,7 +735,7 @@
                 <div class="panel panel-1">
                     <div class="panel-title-gothic">I</div>
                     <div class="collage-container" id="collageContainer">
-                        <!-- Las imágenes se inyectan con JS para simplificar -->
+                        <!-- Las imágenes se inyectan con JS -->
                     </div>
                 </div>
 
@@ -851,7 +851,6 @@
             const clientY = e.clientY || e.touches[0].clientY;
             const newX = clientX - dragData.offsetX;
             const newY = clientY - dragData.offsetY;
-            // mantener dentro del panel
             const panel = dragData.element.closest('.panel');
             const panelRect = panel.getBoundingClientRect();
             const elRect = dragData.element.getBoundingClientRect();
@@ -869,7 +868,6 @@
             dragData.element.style.cursor = 'grab';
             dragData.element.style.zIndex = 10;
             dragData.element.style.transition = '';
-            // Si no hubo movimiento, consideramos clic para abrir modal
             if (!dragData.moved) {
                 const img = dragData.element.querySelector('img');
                 if (img) openImageModal(img.src);
@@ -886,10 +884,6 @@
             el.addEventListener('mouseup', endDrag);
             el.addEventListener('touchend', endDrag);
             el.addEventListener('mouseleave', endDrag);
-            // evitar que el clic abra el modal si se arrastró
-            el.addEventListener('click', function(e) {
-                // si no se movió, ya se abrió en endDrag
-            });
         });
 
         // ====== MODAL IMAGEN ======
@@ -905,7 +899,6 @@
             imageModal.classList.remove('active');
         }
 
-        // Cerrar modal al hacer clic fuera de la imagen
         imageModal.addEventListener('click', function(e) {
             if (e.target === imageModal) closeImageModal();
         });
@@ -919,7 +912,6 @@
             document.getElementById('bookContainer').classList.add('open');
             document.getElementById('btnText').innerText = 'Cerrar carta';
             createGothicParticles();
-            // Inicializar navegación móvil
             initMobileNav();
         }
 
@@ -932,7 +924,6 @@
             document.getElementById('envelopeCover').classList.remove('opened');
             document.getElementById('bookContainer').classList.remove('open');
             document.getElementById('btnText').innerText = 'Abrir carta';
-            // Resetear índice móvil
             currentPanel = 0;
             updateMobileView();
         }
@@ -1270,7 +1261,6 @@
         const trifold = document.getElementById('trifoldCard');
 
         function initMobileNav() {
-            // Solo si es móvil (ancho < 768)
             if (window.innerWidth < 768) {
                 currentPanel = 0;
                 updateMobileView();
@@ -1285,7 +1275,6 @@
                 const offset = -currentPanel * 100;
                 trifold.style.transform = `translateX(${offset}%)`;
                 document.getElementById('pageIndicator').textContent = `${currentPanel + 1} / ${totalPanels}`;
-                // Habilitar/deshabilitar botones
                 document.getElementById('prevPanelBtn').disabled = (currentPanel === 0);
                 document.getElementById('nextPanelBtn').disabled = (currentPanel === totalPanels - 1);
             }
@@ -1305,14 +1294,12 @@
             }
         });
 
-        // Resize: actualizar vista móvil
         window.addEventListener('resize', function() {
             if (window.innerWidth < 768 && isOpened) {
                 document.getElementById('mobileNav').style.display = 'flex';
                 updateMobileView();
             } else {
                 document.getElementById('mobileNav').style.display = 'none';
-                // resetear transform en desktop
                 trifold.style.transform = '';
             }
         });
@@ -1370,7 +1357,6 @@
             }
             animate();
 
-            // Redimensionar el renderer al cambiar tamaño
             const resizeObserver = new ResizeObserver(() => {
                 const w = wrapper.clientWidth;
                 const h = wrapper.clientHeight;
