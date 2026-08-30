@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carta para Jose</title>
+  
+  <!-- Fuentes e Iconos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Se añadió Dancing Script para la cursiva de la portada -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Model Viewer para los modelos 3D -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+
+  <style>
+    /* =========================================
+       ESTILOS GLOBALES Y DEL LIBRO 3D
+       ========================================= */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      user-select: none;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #0d0614; 
+      overflow: hidden;
+    }
+
+    .book-container {
+      position: relative;
+      width: 90vw;
+      max-width: 420px;
+      height: 85vh;
+      max-height: 750px;
+      perspective: 2500px; /* Ajuste para evitar deformación en móviles */
+    }
+
+    .page {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #fff;
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      transform-origin: left center;
+      transition: transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1);
+      transform-style: preserve-3d;
+      
+      /* Corrección fundamental para que no se vea al revés/pegado en móviles */
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      padding: 20px; /* Evita que el contenido toque los bordes */
+    }
+
+    .page.flipped {
+      transform: rotateY(-180deg);
+      pointer-events: none;
+    }
+
+    /* =========================================
+       NAVEGACIÓN
+       ========================================= */
+    .nav-arrows {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 25px;
+      z-index: 50;
+    }
+    
+    .nav-arrows.center { justify-content: center; }
+    .nav-arrows.right-only { justify-content: flex-end; }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    /* =========================================
+       PORTADA
+       ========================================= */
+    .cover-content { text-align: center; z-index: 2; }
+    .cover-logo { width: 180px; margin-bottom: 10px; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
+    .cover-text { 
+      font-family: 'Dancing Script', cursive; /* Fuente cursiva */
+      font-size: 3.5rem; 
+      line-height: 1.1;
+      color: #fff; 
+      text-shadow: 2px 2px 10px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.4); 
+    }
+
+    /* =========================================
+       REPRODUCTOR
+       ========================================= */
+    .glow-bg {
+      position: absolute;
+      width: 380px;
+      height: 380px;
+      background: radial-gradient(circle, rgba(247, 127, 0, 0.45) 0%, rgba(214, 40, 40, 0.2) 50%, rgba(0,0,0,0) 70%);
+      border-radius: 50%;
+      z-index: 0;
+      animation: floatGlow 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatGlow {
+      0% { transform: translate(-10%, -10%) scale(1); }
+      100% { transform: translate(10%, 10%) scale(1.15); }
+    }
+
+    .player-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 340px; /* Evita que crezca demasiado */
+      margin: 0 auto; /* Lo centra perfectamente */
+      background: rgba(20, 10, 18, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 140, 66, 0.25);
+      border-radius: 28px;
+      padding: 25px 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(232, 93, 4, 0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+    
+    .header-tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: #ffa566; font-weight: 700; margin-bottom: 15px; background: rgba(232, 93, 4, 0.15); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255, 165, 102, 0.3); display: flex; align-items: center; gap: 6px; }
+    .disc-container { position: relative; width: 140px; height: 140px; margin: 5px 0 15px 0; display: flex; justify-content: center; align-items: center; }
+    .disc { width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(from 0deg, #e85d04, #f77f00, #d62828, #f77f00, #e85d04); padding: 4px; box-shadow: 0 10px 30px rgba(232, 93, 4, 0.4), 0 0 0 8px rgba(255, 255, 255, 0.03); transition: transform 0.3s ease; }
+    .disc-inner { width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at center, #150914 30%, #2b0e1f 60%, #110510 100%); display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; border: 3px solid rgba(255, 154, 60, 0.3); }
+    .disc-inner::before { content: ''; position: absolute; width: 80%; height: 80%; border-radius: 50%; border: 1px dashed rgba(255, 255, 255, 0.15); box-shadow: 0 0 0 12px rgba(255, 255, 255, 0.03), 0 0 0 24px rgba(255, 255, 255, 0.03); }
+    .center-hole { width: 30px; height: 30px; background: linear-gradient(135deg, #f77f00, #d62828); border-radius: 50%; border: 4px solid #1a0a16; z-index: 2; display: flex; justify-content: center; align-items: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+    .center-hole i { color: #fff; font-size: 0.7rem; }
+    .disc.spinning { animation: spin 12s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    
+    .track-info { text-align: center; width: 100%; margin-bottom: 15px; }
+    .track-title { font-size: 1.1rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+    .track-artist { font-size: 0.85rem; color: #fca311; font-weight: 600; opacity: 0.9; }
+    
+    .progress-area { width: 100%; margin-bottom: 15px; }
+    .progress-bar-container { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; cursor: pointer; position: relative; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #f77f00, #ffba08); border-radius: 10px; box-shadow: 0 0 12px rgba(247, 127, 0, 0.8); }
+    .time-stamps { display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.7rem; color: #d8b4a0; font-weight: 600; }
+    
+    .controls { display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; margin-bottom: 15px; }
+    .btn { background: none; border: none; color: #ffd8be; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: all 0.2s ease; outline: none; }
+    .btn:hover { color: #fff; transform: scale(1.1); }
+    .btn-secondary { font-size: 1.1rem; width: 38px; height: 38px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .btn-main { width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, #e85d04 0%, #f77f00 100%); color: #fff; font-size: 1.4rem; box-shadow: 0 8px 20px rgba(232, 93, 4, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.3); }
+    
+    .volume-container { display: flex; align-items: center; gap: 10px; width: 90%; background: rgba(0, 0, 0, 0.25); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .volume-icon { color: #fca311; font-size: 0.8rem; cursor: pointer; width: 16px; text-align: center; }
+    .volume-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 5px; background: rgba(255, 255, 255, 0.2); outline: none; }
+    .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #f77f00; cursor: pointer; box-shadow: 0 0 8px rgba(247, 127, 0, 0.8); }
+    .status-msg { margin-top: 10px; font-size: 0.7rem; color: rgba(255, 216, 190, 0.6); font-weight: 600; text-align: center; width: 100%; }
+
+    /* =========================================
+       GALERÍA Y LIGHTBOX
+       ========================================= */
+    .gallery-img {
+      max-width: 90%; max-height: 60%;
+      border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      cursor: pointer; transition: transform 0.3s;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    .gallery-img:hover { transform: scale(1.03); }
+    
+    .hint-text {
+      margin-top: 15px; color: rgba(255,255,255,0.9); font-size: 0.85rem;
+      background: rgba(0,0,0,0.5); padding: 6px 14px; border-radius: 15px; backdrop-filter: blur(5px);
+    }
+
+    #lightbox {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;
+      padding: 20px; cursor: zoom-out; backdrop-filter: blur(8px);
+    }
+    #lightbox img {
+      max-width: 95%; max-height: 95%; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); object-fit: contain;
+    }
+
+    /* =========================================
+       VISOR 3D (Cajas flotantes para dejar ver el fondo)
+       ========================================= */
+    .model-wrapper {
+      width: 85%;
+      height: 65%;
+      background: rgba(255, 255, 255, 0.15); /* Fondo semitransparente que enmarca el 3D */
+      border-radius: 20px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 25px; /* Deja espacio para los botones */
+    }
+
+    model-viewer {
+      width: 100%; 
+      height: 100%; 
+      outline: none; 
+      --poster-color: transparent;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="book-container">
+    
+    <!-- PÁGINA 0: PORTADA -->
+    <div class="page" id="p0" style="z-index: 7; background: url('Imagen/FondoPortada.jpg') center/cover no-repeat;">
+      <div class="cover-content">
+        <img src="Imagen/logo 1.png" alt="Logo" class="cover-logo">
+        <h1 class="cover-text">De Jenny<br>para Jose</h1>
+      </div>
+      <div class="nav-arrows right-only">
+        <button class="nav-btn" onclick="flipPage(0, true)">Abrir <i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- PÁGINA 1: REPRODUCTOR -->
+    <div class="page" id="p1" style="z-index: 6; background: url('Imagen/Fondo 1.jpg') center/cover no-repeat;">
+      <div class="glow-bg"></div>
+      <div class="player-card">
+        <div class="header-tag"><i class="fa-solid fa-compact-disc"></i> Sunset Music Player</div>
+        <div class="disc-container">
+          <div class="disc" id="disc-element">
+            <div class="disc-inner"><div class="center-hole"><i class="fa-solid fa-music"></i></div></div>
+          </div>
+        </div>
+        <div class="track-info">
+          <h2 class="track-title" id="track-title">Cargando...</h2>
+          <p class="track-artist" id="track-artist">Para José</p>
+        </div>
+        <div class="progress-area">
+          <div class="progress-bar-container" id="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
+          <div class="time-stamps"><span id="current-time">0:00</span><span id="duration-time">0:00</span></div>
+        </div>
+        <div class="controls">
+          <button class="btn btn-secondary" id="btn-prev" title="Anterior"><i class="fa-solid fa-backward-step"></i></button>
+          <button class="btn btn-main" id="btn-play-pause" title="Reproducir/Pausar"><i class="fa-solid fa-play" id="play-icon"></i></button>
+          <button class="btn btn-secondary" id="btn-next" title="Siguiente"><i class="fa-solid fa-forward-step"></i></button>
+        </div>
+        <div class="volume-container">
+          <i class="fa-solid fa-volume-high volume-icon" id="volume-btn"></i>
+          <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="80">
+        </div>
+        <div class="status-msg" id="status-msg">Haz clic en Play para comenzar</div>
+      </div>
+      <div class="nav-arrows">
+        <button class="nav-btn" onclick="flipPage(1, false)"><i class="fa-solid fa-arrow-left"></i> Anterior</button>
+        <button class="nav-btn" onclick="flipPage(1, true)">Siguiente <i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- PÁGINA 2: IMAGEN 1 -->
+    <div class="page" id="p2" style="z-index: 5; background: url('Imagen/Fondo 2.jpg') center/cover no-repeat;">
+      <img src="Imagen/Imagen 1.png" alt="Imagen 1" class="gallery-img" onclick="openLightbox(this.src)">
+      <p class="hint-text"><i class="fa-solid fa-magnifying-glass-plus"></i> Toca la imagen para ampliar</p>
+      <div class="nav-arrows">
+        <button class="nav-btn" onclick="flipPage(2, false)"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="nav-btn" onclick="flipPage(2, true)"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- PÁGINA 3: IMAGEN 2 -->
+    <div class="page" id="p3" style="z-index: 4; background: url('Imagen/fondo 3.jpg') center/cover no-repeat;">
+      <img src="Imagen/Imagen 2.png" alt="Imagen 2" class="gallery-img" onclick="openLightbox(this.src)">
+      <p class="hint-text"><i class="fa-solid fa-magnifying-glass-plus"></i> Toca la imagen para ampliar</p>
+      <div class="nav-arrows">
+        <button class="nav-btn" onclick="flipPage(3, false)"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="nav-btn" onclick="flipPage(3, true)"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- PÁGINA 4: MODELO 3D 1 -->
+    <!-- Agregué fondo 4.jpg. Si no existe, mostrará tu color #ABC0D5 -->
+    <div class="page" id="p4" style="z-index: 3; background: #ABC0D5 url('Imagen/fondo 4.jpg') center/cover no-repeat;">
+      <div class="model-wrapper">
+        <model-viewer src="assets/Modelo 1.glb" auto-rotate camera-controls shadow-intensity="1" interaction-prompt="none"></model-viewer>
+      </div>
+      <p class="hint-text"><i class="fa-solid fa-hand-pointer"></i> Gira el modelo 3D</p>
+      <div class="nav-arrows">
+        <button class="nav-btn" onclick="flipPage(4, false)"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="nav-btn" onclick="flipPage(4, true)"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- PÁGINA 5: MODELO 3D 2 -->
+    <!-- Agregué fondo 5.jpg. Si no existe, mostrará tu color #658DBE -->
+    <div class="page" id="p5" style="z-index: 2; background: #658DBE url('Imagen/fondo 5.jpg') center/cover no-repeat;">
+      <div class="model-wrapper">
+        <model-viewer src="assets/Modelo 2.glb" auto-rotate camera-controls shadow-intensity="1" interaction-prompt="none"></model-viewer>
+      </div>
+      <p class="hint-text"><i class="fa-solid fa-hand-pointer"></i> Gira el modelo 3D</p>
+      <div class="nav-arrows">
+        <button class="nav-btn" onclick="flipPage(5, false)"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="nav-btn" onclick="flipPage(5, true)"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- PÁGINA 6: MODELO 3D 3 -->
+    <!-- Agregué fondo 6.jpg. Si no existe, mostrará tu color #3D8EC3 -->
+    <div class="page" id="p6" style="z-index: 1; background: #3D8EC3 url('Imagen/fondo 6.jpg') center/cover no-repeat;">
+      <div class="model-wrapper">
+        <model-viewer src="assets/Modelo 3.glb" auto-rotate camera-controls shadow-intensity="1" interaction-prompt="none"></model-viewer>
+      </div>
+      <p class="hint-text"><i class="fa-solid fa-hand-pointer"></i> Gira el modelo 3D</p>
+      <div class="nav-arrows center">
+        <button class="nav-btn" onclick="flipPage(6, false)"><i class="fa-solid fa-arrow-left"></i> Volver</button>
+      </div>
+    </div>
+
+  </div> <!-- Fin de contenedor de hojas -->
+
+  <!-- Lightbox (Zoom de imagen) -->
+  <div id="lightbox" onclick="this.style.display='none'">
+    <img id="lightbox-img" src="">
+  </div>
+
+  <!-- SCRIPTS -->
+  <script>
+    // --- 1. LÓGICA DEL LIBRO 3D ---
+    function flipPage(currentIndex, forward) {
+      if (forward) {
+        document.getElementById(`p${currentIndex}`).classList.add('flipped');
+      } else {
+        const prevPage = document.getElementById(`p${currentIndex - 1}`);
+        if (prevPage) prevPage.classList.remove('flipped');
+      }
+    }
+
+    // --- 2. LÓGICA DE GALERÍA ZOOM ---
+    function openLightbox(src) {
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox').style.display = 'flex';
+    }
+
+    // --- 3. LÓGICA DEL REPRODUCTOR (GOOGLE DRIVE) ---
+    // Puedes editar el texto "title" aquí para ponerle el nombre real a las canciones
+    const tracks = [
+      { title: "Pista 1", src: "https://drive.google.com/uc?export=download&id=1_tujbYW-Jk0VnbB94kFfUfHX1aAA8CyQ" },
+      { title: "Pista 2", src: "https://drive.google.com/uc?export=download&id=12W1lNy8LlN4OccT63hRuzRfRMhAUexVB" },
+      { title: "Pista 3", src: "https://drive.google.com/uc?export=download&id=15jZhLOYNkcB2UQLTugX2-n7uVneYTaT0" },
+      { title: "Pista 4", src: "https://drive.google.com/uc?export=download&id=1AZUmwU2APyzCknNJcim_hsNa4-2OdOmK" },
+      { title: "Pista 5", src: "https://drive.google.com/uc?export=download&id=1l8cUcEaf8sxmKRdzUjMCP5Rk19ALIARk" },
+      { title: "Pista 6", src: "https://drive.google.com/uc?export=download&id=10gBD1ABrG5Uo0ZgcMa38aYabUqxfbR1h" },
+      { title: "Pista 7", src: "https://drive.google.com/uc?export=download&id=1AqQ0ffeAOyV1dgmtkgNEqwl4-s71vEDP" },
+      { title: "Pista 8", src: "https://drive.google.com/uc?export=download&id=1QAYKQ9fjbtXMaZSz480qtsDkfeJlYkL8" },
+      { title: "Pista 9", src: "https://drive.google.com/uc?export=download&id=1Y0ope7MT8H6w7QdWuemNAhMtFQa4Ka7o" },
+      { title: "Pista 10", src: "https://drive.google.com/uc?export=download&id=1MDmoehWvUKq99Xy5MtXx9PrYih_2zeg3" },
+      { title: "Pista 11", src: "https://drive.google.com/uc?export=download&id=1ftPratp3L7o2GV7uD68l90aN9_2FpgJB" }
+    ];
+
+    let currentTrackIndex = 0;
+    const audioPlayer = new Audio();
+    audioPlayer.src = tracks[currentTrackIndex].src;
+
+    // UI Elementos
+    const playPauseBtn = document.getElementById('btn-play-pause');
+    const playIcon = document.getElementById('play-icon');
+    const prevBtn = document.getElementById('btn-prev');
+    const nextBtn = document.getElementById('btn-next');
+    const trackTitle = document.getElementById('track-title');
+    const disc = document.getElementById('disc-element');
+    const progressBar = document.getElementById('progress-bar');
+    const progressContainer = document.getElementById('progress-container');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationTimeEl = document.getElementById('duration-time');
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeBtn = document.getElementById('volume-btn');
+    const statusMsg = document.getElementById('status-msg');
+
+    // Inicializar reproductor
+    trackTitle.innerText = tracks[currentTrackIndex].title;
+    audioPlayer.volume = volumeSlider.value / 100;
+
+    function loadTrack(index) {
+      currentTrackIndex = index;
+      audioPlayer.src = tracks[currentTrackIndex].src;
+      trackTitle.innerText = tracks[currentTrackIndex].title;
+      statusMsg.innerText = "Cargando audio desde Drive...";
+      audioPlayer.load();
+      if (!audioPlayer.paused) {
+        audioPlayer.play();
+      }
+    }
+
+    // Controles de Play/Pause
+    playPauseBtn.addEventListener('click', () => {
+      if (audioPlayer.paused) {
+        audioPlayer.play();
+      } else {
+        audioPlayer.pause();
+      }
+    });
+
+    // Eventos del Audio Nativo
+    audioPlayer.addEventListener('play', () => {
+      playIcon.className = "fa-solid fa-pause";
+      disc.classList.add('spinning');
+      statusMsg.innerText = "Reproduciendo...";
+    });
+
+    audioPlayer.addEventListener('pause', () => {
+      playIcon.className = "fa-solid fa-play";
+      disc.classList.remove('spinning');
+      statusMsg.innerText = "Pausado";
+    });
+
+    audioPlayer.addEventListener('waiting', () => {
+      statusMsg.innerText = "Cargando audio...";
+    });
+
+    audioPlayer.addEventListener('playing', () => {
+      statusMsg.innerText = "Reproduciendo...";
+    });
+
+    audioPlayer.addEventListener('ended', () => {
+      if (currentTrackIndex < tracks.length - 1) {
+        loadTrack(currentTrackIndex + 1);
+        audioPlayer.play();
+      } else {
+        // Reinicia la playlist
+        loadTrack(0);
+        audioPlayer.pause();
+      }
+    });
+
+    // Siguiente y Anterior
+    nextBtn.addEventListener('click', () => {
+      let newIndex = currentTrackIndex + 1;
+      if (newIndex >= tracks.length) newIndex = 0;
+      let wasPlaying = !audioPlayer.paused;
+      loadTrack(newIndex);
+      if (wasPlaying) audioPlayer.play();
+    });
+
+    prevBtn.addEventListener('click', () => {
+      let newIndex = currentTrackIndex - 1;
+      if (newIndex < 0) newIndex = tracks.length - 1;
+      let wasPlaying = !audioPlayer.paused;
+      loadTrack(newIndex);
+      if (wasPlaying) audioPlayer.play();
+    });
+
+    // Barra de progreso
+    audioPlayer.addEventListener('timeupdate', () => {
+      if (audioPlayer.duration) {
+        const pct = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+        progressBar.style.width = pct + '%';
+        currentTimeEl.innerText = formatTime(audioPlayer.currentTime);
+        durationTimeEl.innerText = formatTime(audioPlayer.duration);
+      }
+    });
+
+    progressContainer.addEventListener('click', (e) => {
+      if (!audioPlayer.duration) return;
+      const width = progressContainer.clientWidth;
+      const clickX = e.offsetX;
+      audioPlayer.currentTime = (clickX / width) * audioPlayer.duration;
+    });
+
+    // Volumen
+    volumeSlider.addEventListener('input', (e) => {
+      const val = e.target.value;
+      audioPlayer.volume = val / 100;
+      if (val == 0) volumeBtn.className = "fa-solid fa-volume-xmark volume-icon";
+      else if (val < 50) volumeBtn.className = "fa-solid fa-volume-low volume-icon";
+      else volumeBtn.className = "fa-solid fa-volume-high volume-icon";
+    });
+
+    let isMuted = false;
+    let lastVol = 80;
+    volumeBtn.addEventListener('click', () => {
+      if (!isMuted) {
+        lastVol = volumeSlider.value;
+        volumeSlider.value = 0; 
+        audioPlayer.volume = 0;
+        volumeBtn.className = "fa-solid fa-volume-xmark volume-icon"; 
+        isMuted = true;
+      } else {
+        volumeSlider.value = lastVol; 
+        audioPlayer.volume = lastVol / 100;
+        volumeBtn.className = lastVol > 50 ? "fa-solid fa-volume-high volume-icon" : "fa-solid fa-volume-low volume-icon"; 
+        isMuted = false;
+      }
+    });
+
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "0:00";
+      const sec = Math.floor(seconds);
+      const mins = Math.floor(sec / 60);
+      const remainingSecs = sec % 60;
+      return mins + ':' + (remainingSecs < 10 ? '0' : '') + remainingSecs;
+    }
+  </script>
+</body>
+</html>
